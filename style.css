@@ -1,0 +1,21 @@
+.mainContainer {
+  text-align: center;
+}
+
+.smallContainer {
+  height: 200px; 
+  word-wrap: break-word;
+}
+
+.inputBox {
+  height: 30em;
+}
+
+.rotateImg{ 
+  transform-origin:50% 50%;
+  animation:4s rotateRight infinite linear; 
+}
+
+@keyframes rotateRight{
+  100%{ transform:rotate(360deg); }
+}

@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="en">
+  <head>
+
+    <meta charset="UTF-8">
+    <link rel="stylesheet" type="text/css" href="style.css">
+    <script src="https://code.angularjs.org/1.6.7/angular.js"></script>
+
+  </head>
+  <body>
+
+  <div ng-app="app" class="mainContainer">
+
+    <h1 class="mainHeader">Spongebob memeifier</h1>
+    <div ng-controller="Ctrl">
+      <input type="textarea" ng-model="msg" ng-trim="false" onkeyup="Expand(this)">
+      </br></br>
+      <div class="smallContainer">
+          <p>{{msg | memeIt}}</p>
+      </div>
+    </div>
+    <img class="rotateImg" src="spongebob.jpg">
+
+  </div>
+    
+    
+    <script src="inputdirective.js"></script>
+
+  </body>
+</html>
