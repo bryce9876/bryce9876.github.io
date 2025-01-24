@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Your Top Spotify Tracks from 2024</title>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+  <style>
+      :root {
+          --spotify-green: #1DB954;
+          --dark-bg: #121212;
+          --card-bg: #282828;
+      }
+
+      * {
+          margin: 0;
+          padding: 0;
+          box-sizing: border-box;
+      }
+
+      body {
+          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+          background-color: var(--dark-bg);
+          color: white;
+          line-height: 1.6;
+      }
+
+      .container {
+          max-width: 800px;
+          margin: 0 auto;
+          padding: 2rem;
+      }
+
+      header {
+          text-align: center;
+          margin-bottom: 3rem;
+      }
+
+      h1 {
+          font-size: 2.5rem;
+          margin-bottom: 1rem;
+          color: var(--spotify-green);
+      }
+
+      .login-container {
+          text-align: center;
+          margin-top: 2rem;
+      }
+
+      .login-button {
+          background-color: var(--spotify-green);
+          color: white;
+          border: none;
+          padding: 1rem 2rem;
+          border-radius: 25px;
+          font-size: 1.1rem;
+          cursor: pointer;
+          transition: background-color 0.2s;
+      }
+
+      .login-button:hover {
+          background-color: #1ed760;
+      }
+
+      .tracks-grid {
+          display: grid;
+          grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+          gap: 1.5rem;
+      }
+
+      .track-card {
+          background-color: var(--card-bg);
+          border-radius: 8px;
+          padding: 1.5rem;
+          transition: transform 0.2s ease, background-color 0.2s ease;
+          display: flex;
+          gap: 1rem;
+      }
+
+      .track-artwork {
+          width: 80px;
+          height: 80px;
+          border-radius: 4px;
+          overflow: hidden;
+      }
+
+      .track-artwork img {
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
+      }
+
+      .track-info {
+          flex: 1;
+          display: flex;
+          flex-direction: column;
+      }
+
+      .track-card:hover {
+          transform: translateY(-5px);
+          background-color: #333;
+      }
+
+      .track-number {
+          font-size: 0.9rem;
+          color: var(--spotify-green);
+          margin-bottom: 0.5rem;
+      }
+
+      .track-name {
+          font-size: 1.2rem;
+          font-weight: bold;
+          margin-bottom: 0.5rem;
+      }
+
+      .track-artist {
+          color: #b3b3b3;
+          margin-bottom: 0.5rem;
+      }
+
+      .track-meta {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          margin-top: 1rem;
+          font-size: 0.9rem;
+          color: #b3b3b3;
+      }
+
+      @media (max-width: 600px) {
+          .container {
+              padding: 1rem;
+          }
+
+          h1 {
+              font-size: 2rem;
+          }
+
+          .tracks-grid {
+              grid-template-columns: 1fr;
+          }
+      }
+  </style>
+</head>
+<body>
+<div class="container">
+  <header>
+    <h1>Your Top Spotify Tracks from 2024</h1>
+  </header>
+
+  <div id="login-section" class="login-container" style="display: none">
+    <button class="login-button" onclick="login()">
+      Connect with Spotify
+    </button>
+  </div>
+
+  <div id="tracks-section" class="tracks-grid" style="display: none;">
+    <!-- Tracks will be inserted here -->
+  </div>
+</div>
+
+<script>
+  // Spotify App credentials
+  const clientId = '2721b6dd23364780b901b1e9f9cc2baa';
+  const redirectUri = 'https://brycematheson.com/top_100';
+
+  // Spotify API endpoints
+  const authEndpoint = 'https://accounts.spotify.com/authorize';
+  const apiEndpoint = 'https://api.spotify.com/v1';
+
+  // Token storage keys
+  const TOKEN_KEY = 'spotify_access_token';
+  const TOKEN_EXPIRY_KEY = 'spotify_token_expiry';
+
+  // Login function
+  function login() {
+    const scope = 'user-top-read';
+    const args = new URLSearchParams({
+      response_type: 'token',
+      client_id: clientId,
+      scope: scope,
+      redirect_uri: redirectUri,
+    });
+
+    window.location = `${authEndpoint}?${args}`;
+  }
+
+  // Parse the access token from URL hash
+  function getHashParams() {
+    const hashParams = {};
+    const hash = window.location.hash.substring(1);
+    const params = new URLSearchParams(hash);
+
+    for (const [key, value] of params) {
+      hashParams[key] = value;
+    }
+
+    return hashParams;
+  }
+
+  // Store token with expiration
+  function storeToken(token, expiresIn) {
+    const expiryTime = Date.now() + (expiresIn * 1000);
+    localStorage.setItem(TOKEN_KEY, token);
+    localStorage.setItem(TOKEN_EXPIRY_KEY, expiryTime.toString());
+  }
+
+  // Check if token is valid
+  function hasValidToken() {
+    const token = localStorage.getItem(TOKEN_KEY);
+    const expiry = localStorage.getItem(TOKEN_EXPIRY_KEY);
+
+    if (!token || !expiry) return false;
+
+    return Date.now() < parseInt(expiry);
+  }
+
+  // Get stored token
+  function getStoredToken() {
+    return localStorage.getItem(TOKEN_KEY);
+  }
+
+  // Clear stored token
+  function clearStoredToken() {
+    localStorage.removeItem(TOKEN_KEY);
+    localStorage.removeItem(TOKEN_EXPIRY_KEY);
+  }
+
+  // Helper function to create track element
+  function createTrackElement(track, index) {
+    const div = document.createElement('div');
+    div.className = 'track-card';
+
+    div.innerHTML = `
+                <div class="track-artwork">
+                    <img src="${track.album.images[2]?.url || track.album.images[0]?.url}"
+                         alt="${track.name} album artwork"
+                         loading="lazy">
+                </div>
+                <div class="track-info">
+                    <div class="track-number">#${index + 1}</div>
+                    <div class="track-name">${track.name}</div>
+                    <div class="track-artist">${track.artists[0].name}</div>
+                </div>
+            `;
+
+    return div;
+  }
+
+  // Helper function to fetch tracks for a specific time range
+  async function fetchTracksForTimeRange(accessToken, timeRange) {
+    const response = await fetch(`${apiEndpoint}/me/top/tracks?limit=50&time_range=${timeRange}`, {
+      headers: {
+        'Authorization': `Bearer ${accessToken}`
+      }
+    });
+
+    if (!response.ok) {
+      if (response.status === 401) {
+        clearStoredToken();
+        showLoginSection();
+        return [];
+      }
+      throw new Error('Failed to fetch tracks');
+    }
+
+    const data = await response.json();
+    return data.items.filter(track => {
+      const releaseDate = track.album.release_date;
+      let releaseYear;
+
+      if (releaseDate.length === 4) {
+        releaseYear = parseInt(releaseDate);
+      } else if (releaseDate.length === 7) {
+        releaseYear = parseInt(releaseDate.split('-')[0]);
+      } else {
+        releaseYear = new Date(releaseDate).getFullYear();
+      }
+
+      return releaseYear === 2024;
+    });
+  }
+
+  // Fetch tracks from all time ranges in parallel
+  async function fetchAllTimeRanges(accessToken) {
+    const timeRanges = ['long_term', 'medium_term', 'short_term'];
+
+    try {
+      const results = await Promise.all(
+        timeRanges.map(timeRange =>
+          fetchTracksForTimeRange(accessToken, timeRange)
+            .catch(error => {
+              console.warn(`Error fetching ${timeRange}:`, error);
+              return []; // Return empty array on error for this time range
+            })
+        )
+      );
+
+      // Merge all results while maintaining order priority (long > medium > short)
+      const seen = new Set();
+      const allTracks = [];
+
+      // Process each time range's results
+      results.forEach(tracks => {
+        tracks.forEach(track => {
+          if (!seen.has(track.id) && allTracks.length < 10) {
+            seen.add(track.id);
+            allTracks.push(track);
+          }
+        });
+      });
+
+      return allTracks;
+    } catch (error) {
+      console.error('Error fetching tracks:', error);
+      throw error;
+    }
+  }
+
+  // Main fetch function
+  async function fetchTopTracks(accessToken) {
+    try {
+      const tracks2024 = await fetchAllTimeRanges(accessToken);
+
+      const tracksSection = document.getElementById('tracks-section');
+      tracksSection.style.display = 'grid';
+
+      // Create document fragment for better performance
+      const fragment = document.createDocumentFragment();
+
+      if (tracks2024.length > 0) {
+        tracks2024.forEach((track, index) => {
+          const trackElement = createTrackElement(track, index);
+          fragment.appendChild(trackElement);
+        });
+        tracksSection.innerHTML = ''; // Clear existing content
+        tracksSection.appendChild(fragment);
+      } else {
+        tracksSection.innerHTML = '<p>No tracks from 2024 found in your top tracks.</p>';
+      }
+
+      hideLoginSection();
+    } catch (error) {
+      console.error('Error fetching tracks:', error);
+      showLoginSection();
+    }
+  }
+
+  function showLoginSection() {
+    document.getElementById('login-section').style.display = 'block';
+    document.getElementById('tracks-section').style.display = 'none';
+  }
+
+  function hideLoginSection() {
+    document.getElementById('login-section').style.display = 'none';
+  }
+
+  // Initialize the app
+  window.onload = () => {
+    // Check for returning from auth
+    const params = getHashParams();
+    if (params.access_token) {
+      // Store the new token
+      storeToken(params.access_token, params.expires_in || 3600);
+      // Remove the hash from the URL
+      window.history.replaceState(null, null, window.location.pathname);
+      fetchTopTracks(params.access_token);
+    } else if (hasValidToken()) {
+      // Use existing valid token
+      fetchTopTracks(getStoredToken());
+    } else {
+      // Show login if no valid token
+      showLoginSection();
+    }
+  };
+</script>
+</body>
+</html>
